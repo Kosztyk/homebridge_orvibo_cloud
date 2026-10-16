@@ -1,0 +1,24 @@
+{
+  "name": "homebridge-orvibo-cloud",
+  "version": "1.0.0",
+  "description": "ORVIBO HomeMate cloud curtains, lights, sensors and Allone Pro remote controls for Homebridge",
+  "main": "index.js",
+  "type": "commonjs",
+  "author": "Kosztyk",
+  "license": "MIT",
+  "keywords": ["homebridge-plugin", "supports-hap", "orvibo", "homemate", "allone"],
+  "engines": {
+    "node": "^22.12.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0"
+  },
+  "files": ["index.js", "lib/", "assets/", "bin/", "config.schema.json", "config.example.json", "README.md", "VALIDATION.md", "CHANGELOG.md", "NOTICE", "LICENSE"],
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "discover": "node bin/discover.js",
+    "check": "node --check index.js && node --check lib/platform.js && node --check lib/accessory.js && node --check lib/binary.js && node --check lib/cloud.js && node --check lib/protocol.js && node --check lib/commands.js && node --check bin/discover.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "homebridge": "2.4.0"
+  }
+}

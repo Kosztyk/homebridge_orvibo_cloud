@@ -1,0 +1,51 @@
+{
+  "pluginAlias": "OrviboCloud",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Connect your ORVIBO HomeMate account. RF blinds and TV remotes appear as momentary switches because those devices have no position or power feedback.",
+  "schema": {
+    "type": "object",
+    "required": ["username"],
+    "properties": {
+      "name": { "title": "Plugin name", "type": "string", "default": "ORVIBO Cloud" },
+      "username": { "title": "HomeMate email / username / phone", "type": "string", "minLength": 1, "required": true },
+      "password": { "title": "HomeMate password", "type": "string", "format": "password", "description": "Required unless you supply passwordHash below. Use your existing HomeMate account." },
+      "host": {
+        "title": "Cloud server", "type": "string", "default": "homemate.orvibo.com",
+        "enum": ["homemate.orvibo.com", "germany.orvibo.com", "china.orvibo.com", "usa.orvibo.com", "auto"],
+        "description": "Choose the same server as your Home Assistant integration. Auto tries only these four known ORVIBO servers."
+      },
+      "familyId": { "title": "Home / family ID (optional)", "type": "string", "description": "Leave empty to discover all homes in this account. Use npm run discover to list IDs." },
+      "pollInterval": { "title": "Refresh interval (seconds)", "type": "integer", "default": 60, "minimum": 30, "maximum": 3600 },
+      "pushUpdates": { "title": "Receive live cloud updates", "type": "boolean", "default": true, "description": "Keeps an additional cloud connection for door, battery and device state events. Polling remains enabled as a fallback." },
+      "tvProfile": { "title": "Default TV profile", "type": "string", "default": "stored", "enum": ["stored", "lg"], "description": "Stored uses the TV keys configured in HomeMate. LG sends the standard LG infrared codes included in the supplied integration." },
+      "tvButtons": {
+        "title": "TV buttons to expose (optional)", "type": "array", "uniqueItems": true,
+        "description": "Omit to use the main 16 controls (13 with the stored profile). An empty array hides all TV buttons. Home, Back and Exit require LG.",
+        "items": { "type": "string", "enum": ["power_toggle", "mute", "volume_up", "volume_down", "channel_up", "channel_down", "menu", "input", "up", "down", "left", "right", "ok", "home", "back", "exit", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+      },
+      "includeDeviceIds": { "title": "Include only these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" }, "description": "Leave empty to include every supported device. Match the deviceId shown by npm run discover." },
+      "excludeDeviceIds": { "title": "Exclude these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+      "devices": {
+        "title": "Device options", "type": "array",
+        "items": {
+          "type": "object", "required": ["deviceId"],
+          "properties": {
+            "deviceId": { "title": "Device ID", "type": "string", "required": true, "minLength": 1 },
+            "name": { "title": "HomeKit service name (optional)", "type": "string" },
+            "exclude": { "title": "Hide this device", "type": "boolean", "default": false },
+            "invertPosition": { "title": "Reverse curtain position", "type": "boolean", "default": false, "description": "For percentage curtains only. HomeKit always uses 0=closed and 100=open. RF Open/Close commands are unchanged." },
+            "exposeAs": { "title": "Relay appearance", "type": "string", "default": "auto", "enum": ["auto", "switch", "outlet"], "description": "Optional HomeKit appearance for a supported type-1/102 on/off relay. Does not add support for unknown models." },
+            "tvProfile": { "title": "TV profile override (optional)", "type": "string", "enum": ["stored", "lg"] },
+            "tvButtons": {
+              "title": "TV buttons override (optional)", "type": "array", "uniqueItems": true,
+              "items": { "type": "string", "enum": ["power_toggle", "mute", "volume_up", "volume_down", "channel_up", "channel_down", "menu", "input", "up", "down", "left", "right", "ok", "home", "back", "exit", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+            }
+          }
+        }
+      },
+      "passwordHash": { "title": "Password MD5 (advanced, optional)", "type": "string", "format": "password", "pattern": "^[a-fA-F0-9]{32}$", "description": "Alternative to password. This hash is a credential and must be kept private." },
+      "debug": { "title": "Show additional discovery logs", "type": "boolean", "default": false, "description": "Logs device names, types and connection status. Never logs passwords, account tokens or packet bodies." }
+    }
+  }
+}
