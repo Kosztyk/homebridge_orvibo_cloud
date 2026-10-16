@@ -106,3 +106,10 @@ test('incomplete device options are reported without dropping valid overrides or
   assert.doesNotThrow(() => new CloudClient(original));
   assert.throws(() => new CloudClient({ ...original, devices: [{ deviceId: 'living-blind', tvProfile: 'invalid' }] }), /Device TV profile/);
 });
+
+test('None is a valid disabled TV profile at account and per-device levels', () => {
+  const account = { username: 'user', password: 'pass' };
+  assert.doesNotThrow(() => new CloudClient({ ...account, tvProfile: 'none' }));
+  assert.doesNotThrow(() => new CloudClient({ ...account, devices: [{ deviceId: 'tv', tvProfile: 'none' }] }));
+  assert.throws(() => new CloudClient({ ...account, tvProfile: 'invalid' }), /TV profile/);
+});

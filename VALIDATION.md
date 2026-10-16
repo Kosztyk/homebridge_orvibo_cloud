@@ -1,16 +1,16 @@
-# Validation — 1.1.1
+# Validation — 1.1.3
 
 Validated on 16 October 2026 with Node.js **24.19.0**.
 
 | Environment | Result |
 | --- | --- |
-| Homebridge 1.11.4 and its actual HAP implementation | 40 tests passed; 0 failed; 0 skipped |
-| Homebridge 2.4.0 and its actual HAP implementation | 40 tests passed; 0 failed; 0 skipped |
+| Homebridge 1.11.4 and its actual HAP implementation | 47 tests passed; 0 failed; 0 skipped |
+| Homebridge 2.4.0 and its actual HAP implementation | 47 tests passed; 0 failed; 0 skipped |
 | JavaScript syntax checks | All runtime files passed |
 | Protocol comparison | Matches vectors executed from the uploaded Python integration 1.1.0 |
 | Local mutual-TLS cloud simulator | Handshake, login, controls, rejection, timeout and socket cleanup passed |
 
-The 40 tests cover:
+The 47 tests cover:
 
 - The account password hash and signatures for both REST request types.
 - Byte-for-byte compatibility with the original static-key and dynamic-key AES
@@ -29,8 +29,17 @@ The 40 tests cover:
 - Actual HomeKit light, cover, contact, battery, outlet and momentary switch
   service getters/setters through real Homebridge APIs.
 - The Homebridge 1/2 battery-service naming difference.
-- RF/TV momentary reset, power-toggle rejection without automatic retransmission,
+- RF blind Window Covering service, exact Open/Stop/Close RF commands through
+  the three-position selector and Hold Position, unchanged cloud values, and
+  rejected commands without automatic retransmission or optimistic selection.
+- RF switch-to-covering cache migration without changing UUIDs, and persistence
+  of the last accepted command across cloud refresh and cache restoration.
+- TV momentary reset, power-toggle rejection without automatic retransmission,
   shared-hub command serialization and offline-hub handling.
+- Global TV profile `none` overriding an LG device profile; per-device `none`
+  affecting only one of two TVs; disabled TV cache removal at startup during a
+  simulated cloud outage, including empty button arrays; and re-enabling the
+  same TV UUID while preserving the RF blind accessory.
 - Live sensor updates, listener reconnection, shutdown and no sibling broadcast
   state leakage.
 - Native accessory serialization/restoration with stable UUIDs and no account

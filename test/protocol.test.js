@@ -58,6 +58,9 @@ test('all 23 stored keys and 26 raw LG NEC signals agree with the Python impleme
   assert.throws(() => c.tvButton('constructor', 'stored'));
   assert.equal(c.tvKeys('stored').length, 13);
   assert.equal(c.tvKeys('lg').length, 16);
+  assert.deepEqual(c.tvKeys('none'), []);
+  assert.deepEqual(c.tvKeys('none', ['power_toggle', 'home']), []);
+  assert.throws(() => c.tvButton('power_toggle', 'none'));
 });
 
 test('TV and RF commands preserve the source packet routing and infrared field names', () => {

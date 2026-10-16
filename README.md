@@ -1,6 +1,6 @@
 # Homebridge ORVIBO Cloud
 
-Version **1.1.1** · Developer **Kosztyk**
+Version **1.1.3** · Developer **Kosztyk**
 
 [GitHub repository](https://github.com/Kosztyk/homebridge_orvibo_cloud)
 · npm package: `homebridge-orvibo-cloud`
@@ -22,12 +22,12 @@ sudo npm install -g homebridge-orvibo-cloud
 
 For installation directly from the supplied release:
 
-1. Extract `homebridge-orvibo-cloud-1.1.1.zip` and copy the included
-   `homebridge-orvibo-cloud-1.1.1.tgz` to your Homebridge machine.
+1. Extract `homebridge-orvibo-cloud-1.1.3.zip` and copy the included
+   `homebridge-orvibo-cloud-1.1.3.tgz` to your Homebridge machine.
 2. In the directory containing that `.tgz`, run:
 
    ```bash
-   sudo npm install -g ./homebridge-orvibo-cloud-1.1.1.tgz
+   sudo npm install -g ./homebridge-orvibo-cloud-1.1.3.tgz
    ```
 
 3. Restart Homebridge. Open **Plugins → Homebridge ORVIBO Cloud → Settings**.
@@ -68,7 +68,7 @@ does not imply that every ORVIBO device type can be controlled.
 | Source device/profile | Apple Home representation | Controls and feedback |
 | --- | --- | --- |
 | Type 34 percentage curtain, without an Allone RF hub | Window covering and a Stop switch | 0–100% position, open, close, stop |
-| Type 34 RF blind sharing the UID of a type 30/67 Allone hub | Open, Close and Stop momentary switches | Exact RF button commands; no invented position |
+| Type 34 RF blind sharing the UID of a type 30/67 Allone hub | One Window Covering accessory | Open, Stop and Close through a three-position command selector; native Hold Position also sends Stop |
 | Type 1/102, subtype 1 relay light | Lightbulb; optionally Switch or Outlet | On/off, with active-low state conversion |
 | Type 38, subtype 4/6/13, with valid brightness and temperature state | Lightbulb | On/off, brightness, 2700–6500 K color temperature |
 | Type 503, subtype 436, one of the three verified models | Lightbulb | Property-based power, brightness and color temperature |
@@ -87,9 +87,20 @@ standalone tile in Apple Home. This release does not implement unlocking,
 thermostats/air conditioners, scenes, RGB controls or arbitrary unsupported
 device commands; those controls are absent from the supplied integration.
 
-RF blinds do not report percentages. TVs have a **power toggle**, with no
-confirmed on/off state. Their momentary switches transmit once and reset after
-about 0.4 seconds. A rejected or timed-out command is not retried automatically.
+RF blinds do not report percentages. Starting with 1.1.2, each appears as one
+blind, with no Open/Close/Stop switch services. The native blind control has
+three command positions: **0 = Close, 50 = Stop, 100 = Open**. A client that
+exposes HomeKit's **Hold Position** control can also use it to stop. These are
+commands, not percentage targets: selecting 50 sends Stop immediately; it does
+not move the blind halfway. The displayed value remembers the last accepted
+command, initially Stop, and is not a measured position or movement indication.
+The Homebridge/Apple Home app determines the control layout; the plugin cannot
+force three separately labelled buttons. Existing blind accessory UUIDs are
+preserved, and their old switch services are removed automatically after update.
+
+TVs have a **power toggle**, with no confirmed on/off state. Their momentary
+switches transmit once and reset after about 0.4 seconds. A rejected or timed-out
+command is not retried automatically.
 Percentage curtain positions and light changes are optimistic after a successful
 acknowledgement until a measured cloud report replaces them.
 
@@ -120,6 +131,25 @@ Example of per-device LG setup:
 Use the TV child's **device ID**, not the Allone hub UID. Routing to the hub is
 handled automatically. An empty `tvButtons` array hides the TV remote accessory.
 
+To disable all TV remotes, select **none** in **TV profile**, save and restart
+Homebridge. This is an explicit saved option, not the blank/unset entry in an
+optional field. Global `none` overrides any per-device LG profile or button
+selection. It removes cached TV accessories even when the cloud is unavailable;
+blinds and other devices remain configured.
+
+The equivalent platform setting is:
+
+```json
+"tvProfile": "none"
+```
+
+To disable only one TV, set `"tvProfile": "none"` or `"exclude": true` in its
+Device options row, using that TV child's device ID. To enable TVs again, select
+`stored` or `lg` and remove any per-device `none`/exclusion for the desired TV.
+An optional button list cleared in the settings form may be omitted on save,
+which restores the default buttons; use the explicit `none` profile to disable
+TVs reliably. A literal `"tvButtons": []` in JSON remains supported.
+
 ## Homes and device selection
 
 Leave `familyId` empty to expose supported devices from every home in this
@@ -134,7 +164,7 @@ Optional settings:
 | `familyId` | Empty | All homes, or one exact home ID |
 | `pollInterval` | `60` | Refresh every 30–3600 seconds |
 | `pushUpdates` | `true` | Additional connection for live cloud device reports |
-| `tvProfile` | `stored` | `stored` or `lg`; can be overridden per device |
+| `tvProfile` | `stored` | `stored`, `lg`, or `none` to disable all TVs; per-device overrides can also use `none` |
 | `tvButtons` | Main controls | List of visible TV keys; can be overridden per device |
 | `includeDeviceIds` | Empty | Include only these IDs; empty means all supported devices |
 | `excludeDeviceIds` | Empty | Hide these devices |
@@ -193,7 +223,8 @@ shell commands or shell history.
   rooms or automations. Push sessions reconnect with backoff; polling continues.
 - A temporarily missing cloud device is retained and unavailable. To remove a
   device deliberately, add its ID to `excludeDeviceIds` or set its device option
-  `exclude` to `true`. Exclusions take effect after a successful refresh.
+  `exclude` to `true`. Explicit exclusions and disabled TV profiles are applied
+  at startup before cloud discovery, including during an outage.
 - RF/TV controls sharing an Allone hub are serialized so one device's response
   cannot be mistaken for a sibling's response.
 
@@ -220,9 +251,19 @@ supported children or break their profile detection.
 correct in HomeMate. Try the stored profile for HomeMate keys, or LG only for an
 LG TV. A stored profile cannot supply Home/Back/Exit keys absent from that profile.
 
-**RF blind controls show as switches:** this is intentional: the supplied
-integration has no RF position measurement. The switches can be used in Home
-scenes and automations.
+**Selecting None did not remove the TV:** update to 1.1.3, select the explicit
+`none` choice in TV profile, save and restart Homebridge. This setting takes
+priority over LG overrides and removes the TV accessory from the cache before
+cloud discovery. Clearing an optional field instead may restore default keys.
+
+**RF blind controls show as switches:** update to 1.1.2 and restart Homebridge.
+The existing accessory is migrated to a primary Window Covering service, and the
+old Open/Close/Stop switch services are removed. Reopen the Home app so it reloads
+the updated service list. No accessory cache deletion is required.
+
+**How to stop an RF blind:** select the middle (50) position on its blind control,
+or use Hold Position in a HomeKit client that exposes it. Only 0, 50 and 100 are
+command selections; RF blinds do not support actual percentage positioning.
 
 ## Development and validation
 
@@ -248,9 +289,9 @@ Build a new installable release with `npm pack`. Increment the version before
 publishing a subsequent release.
 
 The source ZIP contains `publish.sh`, which extracts the release from
-`/tmp/homebridge-orvibo-cloud-1.1.1.zip`, clones the GitHub repository, copies the
+`/tmp/homebridge-orvibo-cloud-1.1.3.zip`, clones the GitHub repository, copies the
 source while preserving `.git` and `.npmrc`, pushes
-`main` and tag `v1.1.1`, then publishes `homebridge-orvibo-cloud` to npm. Run it
+`main` and tag `v1.1.3`, then publishes `homebridge-orvibo-cloud` to npm. Run it
 with `bash publish.sh` on your publishing machine with GitHub and npm already
 authenticated. It is a release script: running it performs the push and publish.
 

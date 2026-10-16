@@ -77,12 +77,13 @@ nativeTest('plugin registers a dynamic platform through the actual Homebridge AP
   assert.ok(registered.includes(OrviboPlatform));
 });
 
-nativeTest('native HomeKit services are created for seven supported devices and preserve truthful RF/TV controls', async (t) => {
+nativeTest('native HomeKit services are created for seven supported devices with RF blinds represented as window coverings', async (t) => {
   const h = await setup(t);
   assert.equal(h.platform.handlers.size, 7);
   assert.equal(h.events.register.length, 7);
-  assert.equal(h.handler('rf').accessory.getService(h.S.WindowCovering), undefined);
-  assert.equal(h.handler('rf').accessory.services.filter((s) => s.UUID === h.S.Switch.UUID).length, 3);
+  assert.ok(h.handler('rf').accessory.getService(h.S.WindowCovering));
+  assert.equal(h.handler('rf').accessory.services.filter((s) => s.UUID === h.S.Switch.UUID).length, 0);
+  assert.equal(h.service('rf', h.S.WindowCovering, 'cover').isPrimaryService, true);
   assert.equal(h.handler('tv').accessory.getService(h.S.Television), undefined);
   assert.equal(h.handler('tv').accessory.services.filter((s) => s.UUID === h.S.Switch.UUID).length, 13);
   assert.equal(await h.service('curtain', h.S.WindowCovering, 'cover').getCharacteristic(h.C.CurrentPosition).handleGetRequest(), 25);
@@ -135,16 +136,82 @@ nativeTest('percentage curtains invert reads and writes consistently and support
   assert.equal(h.commands.at(-1).command.order, 'stop');
 });
 
-nativeTest('RF buttons reset after a single acknowledged command and never turn acknowledgements into positions', async (t) => {
+nativeTest('one RF blind supports Open, Stop and Close through native covering characteristics and preserves cloud values', async (t) => {
   const h = await setup(t);
-  const control = h.service('rf', h.S.Switch, 'rf:open').getCharacteristic(h.C.On);
-  await control.handleSetRequest(true);
-  assert.equal(h.commands.length, 1);
-  assert.equal(h.commands[0].command.order, 'rf control');
-  assert.equal(h.commands[0].command.value1, 380000);
-  await delay(450);
-  assert.equal(control.value, false);
+  const cover = h.service('rf', h.S.WindowCovering, 'cover');
+  const target = cover.getCharacteristic(h.C.TargetPosition);
+  const current = cover.getCharacteristic(h.C.CurrentPosition);
+  const hold = cover.getCharacteristic(h.C.HoldPosition);
+  assert.deepEqual(target.props.validValues, [0, 50, 100]);
+  assert.equal(target.props.minStep, 50);
+  assert.equal(await current.handleGetRequest(), 50, 'unknown initial state uses the Stop command selection');
+  for (const [value, code] of [[100, 380000], [50, 380002], [0, 380001], [0, 380001], [100, 380000]]) {
+    await target.handleSetRequest(value);
+    assert.equal(h.commands.at(-1).command.order, 'rf control');
+    assert.equal(h.commands.at(-1).command.value1, code);
+    assert.equal(h.commands.at(-1).device.id, 'rf');
+    assert.equal(h.commands.at(-1).device.cloudUid, 'shared-hub');
+    assert.equal(await current.handleGetRequest(), value);
+    assert.equal(await target.handleGetRequest(), value);
+  }
+  await hold.handleSetRequest(false);
+  assert.equal(h.commands.length, 5);
+  await hold.handleSetRequest(true);
+  assert.equal(h.commands.at(-1).command.value1, 380002);
+  assert.equal(h.commands.length, 6);
+  assert.equal(await current.handleGetRequest(), 50);
+  assert.equal(await target.handleGetRequest(), 50);
   assert.equal(h.handler('rf').device.value1, 0);
+});
+
+nativeTest('rejected RF covering commands are sent once and leave the last accepted command unchanged', async (t) => {
+  const h = await setup(t, {}, { reply: async () => { throw new OrviboError('Simulated rejection', 'REJECTED'); } });
+  const cover = h.service('rf', h.S.WindowCovering, 'cover');
+  await assert.rejects(cover.getCharacteristic(h.C.TargetPosition).handleSetRequest(100));
+  assert.equal(h.commands.length, 1);
+  assert.equal(h.commands[0].command.value1, 380000);
+  assert.equal(await cover.getCharacteristic(h.C.CurrentPosition).handleGetRequest(), 50);
+  assert.equal(await cover.getCharacteristic(h.C.TargetPosition).handleGetRequest(), 50);
+  assert.equal(h.handler('rf').accessory.context.rfAction, 'stop');
+});
+
+nativeTest('RF command selection survives cloud refresh and native cache restoration without treating cloud values as percentages', async (t) => {
+  const h = await setup(t);
+  const cover = h.service('rf', h.S.WindowCovering, 'cover');
+  await cover.getCharacteristic(h.C.TargetPosition).handleSetRequest(100);
+  await h.platform.refresh();
+  assert.equal(await cover.getCharacteristic(h.C.CurrentPosition).handleGetRequest(), 100);
+  assert.equal(h.handler('rf').device.value1, 0);
+  const serialized = h.api.platformAccessory.serialize(h.handler('rf').accessory);
+  assert.equal(serialized.context.rfAction, 'open');
+  assert.doesNotMatch(JSON.stringify(serialized), /DO-NOT-CACHE|accessToken|credentials/);
+  const restored = await setup(t, { includeDeviceIds: ['rf'] }, { refresh: false });
+  restored.platform.configureAccessory(restored.api.platformAccessory.deserialize(serialized));
+  await restored.platform.refresh();
+  assert.equal(await restored.service('rf', restored.S.WindowCovering, 'cover').getCharacteristic(restored.C.TargetPosition).handleGetRequest(), 100);
+  assert.equal(restored.commands.length, 0);
+  assert.equal(restored.events.register.length, 0);
+});
+
+nativeTest('cached RF switch accessories migrate to one primary covering with the same UUID and no leftover switches', async (t) => {
+  const h = await setup(t, { includeDeviceIds: ['rf'] });
+  const accessory = h.handler('rf').accessory;
+  accessory.removeService(accessory.getService(h.S.WindowCovering));
+  for (const action of ['open', 'close', 'stop']) accessory.addService(h.S.Switch, `Test RF ${action}`, `rf:${action}`);
+  delete accessory.context.rfAction;
+  const serialized = h.api.platformAccessory.serialize(accessory);
+  const restored = await setup(t, { includeDeviceIds: ['rf'] }, { refresh: false });
+  restored.platform.configureAccessory(restored.api.platformAccessory.deserialize(serialized));
+  await restored.platform.refresh();
+  const migrated = restored.handler('rf').accessory;
+  assert.equal(migrated.UUID, accessory.UUID);
+  assert.equal(migrated.displayName, accessory.displayName);
+  assert.equal(migrated.services.filter((service) => service.UUID === restored.S.WindowCovering.UUID).length, 1);
+  assert.equal(migrated.services.filter((service) => service.UUID === restored.S.Switch.UUID).length, 0);
+  assert.equal(migrated.getService(restored.S.WindowCovering).isPrimaryService, true);
+  assert.equal(migrated.category, restored.api.hap.Categories.WINDOW_COVERING);
+  assert.equal(restored.events.register.length, 0);
+  assert.equal(restored.events.remove.length, 0);
 });
 
 nativeTest('LG profile exposes Back/Home/Exit and routes the TV child through its hub', async (t) => {
@@ -226,7 +293,7 @@ nativeTest('controls sharing an Allone hub are serialized, and rejected commands
     return {};
   } });
   await Promise.all([
-    h.service('rf', h.S.Switch, 'rf:open').getCharacteristic(h.C.On).handleSetRequest(true),
+    h.service('rf', h.S.WindowCovering, 'cover').getCharacteristic(h.C.TargetPosition).handleSetRequest(100),
     h.service('tv', h.S.Switch, 'tv:power_toggle').getCharacteristic(h.C.On).handleSetRequest(true),
   ]);
   assert.equal(maxActive, 1);
@@ -263,15 +330,15 @@ nativeTest('an excluded hub remains available for RF classification and an offli
   const h = await setup(t, { includeDeviceIds: ['rf'] });
   assert.equal(h.platform.handlers.size, 1);
   assert.equal(h.handler('rf').kind, 'rfCover');
-  const button = h.service('rf', h.S.Switch, 'rf:open').getCharacteristic(h.C.On);
-  await button.handleSetRequest(true);
+  const control = h.service('rf', h.S.WindowCovering, 'cover').getCharacteristic(h.C.TargetPosition);
+  await control.handleSetRequest(100);
   h.client.snapshot = async () => {
     const result = snapshot();
     result.families[0].devices.find((d) => d.id === 'hub').online = false;
     return result;
   };
   await h.platform.refresh();
-  await assert.rejects(button.handleSetRequest(true));
+  await assert.rejects(control.handleSetRequest(100));
   assert.equal(h.commands.length, 1);
 });
 
@@ -281,6 +348,65 @@ nativeTest('an empty TV button selection hides the remote accessory and relay ap
   const outlet = h.service('relay', h.S.Outlet, 'light');
   assert.ok(outlet);
   assert.equal(await outlet.getCharacteristic(h.C.OutletInUse).handleGetRequest(), true);
+});
+
+nativeTest('global TV profile None disables an explicit LG device override and leaves the RF blind exposed', async (t) => {
+  const h = await setup(t, {
+    tvProfile: 'none', devices: [{ deviceId: 'tv', tvProfile: 'lg', tvButtons: ['home', 'power_toggle'] }],
+  });
+  assert.equal(h.handler('tv'), undefined);
+  assert.equal(h.platform.handlers.size, 6);
+  assert.ok(h.service('rf', h.S.WindowCovering, 'cover'));
+  assert.ok(h.handler('relay'));
+});
+
+nativeTest('disabled cached TV remotes are unregistered on startup even when cloud discovery fails', async (t) => {
+  const original = await setup(t);
+  const tvUUID = original.handler('tv').accessory.UUID;
+  const rfUUID = original.handler('rf').accessory.UUID;
+  const serialized = [...original.platform.accessories.values()].map((accessory) => original.api.platformAccessory.serialize(accessory));
+  const disabledConfigs = [
+    { tvProfile: 'none', devices: [{ deviceId: 'tv', tvProfile: 'lg', tvButtons: ['home'] }] },
+    { tvProfile: 'lg', tvButtons: [] },
+    { devices: [{ deviceId: 'tv', tvProfile: 'none' }] },
+    { devices: [{ deviceId: 'tv', tvButtons: [] }] },
+  ];
+  for (const config of disabledConfigs) {
+    const restored = await setup(t, config, { refresh: false });
+    for (const accessory of serialized) restored.platform.configureAccessory(restored.api.platformAccessory.deserialize(accessory));
+    restored.client.snapshot = async () => { throw new OrviboError('Simulated outage', 'NETWORK'); };
+    await restored.platform.start();
+    assert.deepEqual(restored.events.remove.map((accessory) => accessory.UUID), [tvUUID]);
+    assert.equal(restored.platform.accessories.has(tvUUID), false);
+    assert.equal(restored.platform.accessories.has(rfUUID), true);
+    assert.equal(restored.platform.handlers.size, 6);
+    assert.equal(restored.events.register.length, 0);
+  }
+});
+
+nativeTest('per-device None removes only the selected TV and re-enabling restores its UUID without changing the blind', async (t) => {
+  const h = await setup(t, { tvProfile: 'lg' }, { refresh: false });
+  h.client.snapshot = async () => {
+    const result = snapshot();
+    result.families[0].devices.push(device('other-tv', '6', { cloudUid: 'shared-hub' }));
+    return result;
+  };
+  await h.platform.refresh();
+  const tvUUID = h.handler('tv').accessory.UUID;
+  const otherTVUUID = h.handler('other-tv').accessory.UUID;
+  const blind = h.handler('rf').accessory;
+  h.platform.config.devices = [{ deviceId: 'tv', tvProfile: 'none' }];
+  await h.platform.refresh();
+  assert.equal(h.handler('tv'), undefined);
+  assert.equal(h.handler('other-tv').accessory.UUID, otherTVUUID);
+  assert.deepEqual(h.events.remove.map((accessory) => accessory.UUID), [tvUUID]);
+  assert.equal(h.handler('rf').accessory, blind);
+  h.platform.config.devices = [{ deviceId: 'tv', tvProfile: 'lg', tvButtons: ['home'] }];
+  await h.platform.refresh();
+  assert.equal(h.handler('tv').accessory.UUID, tvUUID);
+  assert.equal(h.handler('other-tv').accessory.UUID, otherTVUUID);
+  assert.equal(h.handler('rf').accessory, blind);
+  assert.equal(h.events.register.filter((accessory) => accessory.UUID === tvUUID).length, 2);
 });
 
 nativeTest('push listener reconnects after an outage and shuts down without creating another session', async (t) => {
@@ -341,7 +467,8 @@ nativeTest('blank UI device options allow startup and discovery of two Allone RF
   assert.equal(platform.handlers.size, 2);
   for (const handler of platform.handlers.values()) {
     assert.equal(handler.kind, 'rfCover');
-    assert.equal(handler.accessory.services.filter((service) => service.UUID === api.hap.Service.Switch.UUID).length, 3);
+    assert.equal(handler.accessory.services.filter((service) => service.UUID === api.hap.Service.WindowCovering.UUID).length, 1);
+    assert.equal(handler.accessory.services.filter((service) => service.UUID === api.hap.Service.Switch.UUID).length, 0);
   }
   assert.deepEqual(platform.config.devices, []);
   assert.deepEqual(platform.config.includeDeviceIds, []);
