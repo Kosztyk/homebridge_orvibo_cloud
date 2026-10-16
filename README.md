@@ -1,6 +1,5 @@
 # Homebridge ORVIBO Cloud
 
-Version **1.0.0** · Developer **Kosztyk**
 
 Connect ORVIBO HomeMate devices directly to Apple Home through Homebridge.
 This is a standalone Node.js port of the supplied `orvibo_cloud` Home Assistant
