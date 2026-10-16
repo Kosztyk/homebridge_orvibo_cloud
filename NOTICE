@@ -1,0 +1,11 @@
+This plugin was created from the user-supplied ORVIBO Cloud Home Assistant
+integration version 1.1.0, whose manifest credits @Kosztyk.
+
+The REST signatures, encrypted framing, device profiles, TV codes and bundled
+ORVIBO client certificate/key are ported from that supplied integration. The
+certificate/key are application protocol assets, not an account token generated
+for the user. Do not substitute personal certificates or account credentials in
+these assets. No Home Assistant package or Python code is executed at runtime.
+
+ORVIBO and HomeMate are trademarks of their respective owners. This independent
+plugin is not an official ORVIBO or Homebridge project.

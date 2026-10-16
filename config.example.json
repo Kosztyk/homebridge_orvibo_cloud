@@ -1,0 +1,10 @@
+{
+  "platform": "OrviboCloud",
+  "name": "ORVIBO Cloud",
+  "username": "your-home-mate-email-or-phone",
+  "password": "your-home-mate-password",
+  "host": "homemate.orvibo.com",
+  "pollInterval": 60,
+  "pushUpdates": true,
+  "tvProfile": "stored"
+}
