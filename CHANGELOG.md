@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Bump the package and release files to 1.1.0.
+
 ## 1.0.0
 
 - Initial standalone Node.js port of the supplied ORVIBO Cloud integration.

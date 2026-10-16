@@ -1,4 +1,4 @@
-# Validation — 1.0.0
+# Validation — 1.1.0
 
 Validated on 16 October 2026 with Node.js **24.19.0**.
 

@@ -1,5 +1,9 @@
 # Homebridge ORVIBO Cloud
 
+Version **1.1.0** · Developer **Kosztyk**
+
+[GitHub repository](https://github.com/Kosztyk/homebridge_orvibo_cloud)
+· npm package: `homebridge-orvibo-cloud`
 
 Connect ORVIBO HomeMate devices directly to Apple Home through Homebridge.
 This is a standalone Node.js port of the supplied `orvibo_cloud` Home Assistant
@@ -10,12 +14,20 @@ additional runtime npm dependencies are not required.
 
 Requires **Node.js 22.12+ (22.x) or 24.x** and **Homebridge 1.8+ or 2.x**.
 
-1. Extract `homebridge-orvibo-cloud-1.0.0.zip` and copy the included
-   `homebridge-orvibo-cloud-1.0.0.tgz` to your Homebridge machine.
+After the package has been published to npm, install it with:
+
+```bash
+sudo npm install -g homebridge-orvibo-cloud
+```
+
+For installation directly from the supplied release:
+
+1. Extract `homebridge-orvibo-cloud-1.1.0.zip` and copy the included
+   `homebridge-orvibo-cloud-1.1.0.tgz` to your Homebridge machine.
 2. In the directory containing that `.tgz`, run:
 
    ```bash
-   sudo npm install -g ./homebridge-orvibo-cloud-1.0.0.tgz
+   sudo npm install -g ./homebridge-orvibo-cloud-1.1.0.tgz
    ```
 
 3. Restart Homebridge. Open **Plugins → Homebridge ORVIBO Cloud → Settings**.
@@ -26,7 +38,6 @@ Requires **Node.js 22.12+ (22.x) or 24.x** and **Homebridge 1.8+ or 2.x**.
    bridge already paired with Apple Home. A separately configured child bridge
    must be paired using its own QR code.
 
-The package is supplied as a local release; it has not been published to npm.
 Run installation in the same Node/npm environment that runs Homebridge. For
 Docker or appliance installs, use that installation's persistent plugin location
 instead of installing on the host outside the container.
@@ -226,6 +237,13 @@ replace testing against your own HomeMate account and physical devices.
 
 Build a new installable release with `npm pack`. Increment the version before
 publishing a subsequent release.
+
+The source ZIP contains `publish.sh`, which extracts the release from
+`/tmp/homebridge-orvibo-cloud-1.1.0.zip`, clones the GitHub repository, copies the
+source while preserving `.git` and `.npmrc`, pushes
+`main` and tag `v1.1.0`, then publishes `homebridge-orvibo-cloud` to npm. Run it
+with `bash publish.sh` on your publishing machine with GitHub and npm already
+authenticated. It is a release script: running it performs the push and publish.
 
 Reference documentation:
 
