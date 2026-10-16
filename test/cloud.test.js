@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { CloudClient, OrviboError, validateConfig } = require('../lib/cloud');
+const { CloudClient, OrviboError, validateConfig, normalizeConfig } = require('../lib/cloud');
 const { passwordHash, sign } = require('../lib/protocol');
 
 test('discovery uses signed requests, transient binary credentials and all homes by default', async () => {
@@ -71,4 +71,38 @@ test('unexpected transport errors are sanitized before reaching diagnostics', as
     assert.doesNotMatch(error.message, /secret|DO-NOT-LOG|password=/);
     return error.code === 'NETWORK';
   });
+});
+
+test('unused Homebridge settings rows do not prevent cloud discovery', async () => {
+  const client = new CloudClient({
+    username: 'user', password: 'pass', host: 'homemate.orvibo.com',
+    devices: [{}, { deviceId: '' }, { deviceId: ' ', name: '', exclude: false, invertPosition: false, exposeAs: 'auto', tvProfile: 'stored', tvButtons: [] }],
+  }, async (_host, route) => {
+    if (route.startsWith('/getOauthToken?')) return { data: { access_token: 'test-token', user_id: 'test-user' } };
+    if (route.includes('statistics')) return { data: [{ familyId: 'home', familyName: 'Home' }] };
+    return { data: { device: [
+      { deviceId: 'living-blind', uid: 'allone-hub', deviceType: 34 },
+      { deviceId: 'bedroom-blind', uid: 'allone-hub', deviceType: 34 },
+    ] } };
+  });
+  const result = await client.snapshot();
+  assert.equal(result.families[0].devices.length, 2);
+});
+
+test('incomplete device options are reported without dropping valid overrides or mutating the supplied settings', () => {
+  const rows = [{ name: 'Bedroom' }, { exclude: true }, { tvProfile: 'lg' }, { exposeAs: 'outlet' }, { tvButtons: ['power_toggle'] }];
+  const original = {
+    username: 'user', password: 'pass', devices: [...rows, { deviceId: ' living-blind ', name: 'Living' }],
+    includeDeviceIds: [' ', ' living-blind ', ''], excludeDeviceIds: [''],
+  };
+  const ignored = [];
+  const normalized = normalizeConfig(original, (row) => ignored.push(row));
+  assert.deepEqual(ignored, [1, 2, 3, 4, 5]);
+  assert.deepEqual(normalized.devices, [{ deviceId: 'living-blind', name: 'Living' }]);
+  assert.deepEqual(normalized.includeDeviceIds, ['living-blind']);
+  assert.deepEqual(normalized.excludeDeviceIds, []);
+  assert.equal(original.devices.length, 6);
+  assert.equal(original.devices.at(-1).deviceId, ' living-blind ');
+  assert.doesNotThrow(() => new CloudClient(original));
+  assert.throws(() => new CloudClient({ ...original, devices: [{ deviceId: 'living-blind', tvProfile: 'invalid' }] }), /Device TV profile/);
 });

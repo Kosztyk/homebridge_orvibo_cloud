@@ -1,6 +1,6 @@
 # Homebridge ORVIBO Cloud
 
-Version **1.1.0** · Developer **Kosztyk**
+Version **1.1.1** · Developer **Kosztyk**
 
 [GitHub repository](https://github.com/Kosztyk/homebridge_orvibo_cloud)
 · npm package: `homebridge-orvibo-cloud`
@@ -22,12 +22,12 @@ sudo npm install -g homebridge-orvibo-cloud
 
 For installation directly from the supplied release:
 
-1. Extract `homebridge-orvibo-cloud-1.1.0.zip` and copy the included
-   `homebridge-orvibo-cloud-1.1.0.tgz` to your Homebridge machine.
+1. Extract `homebridge-orvibo-cloud-1.1.1.zip` and copy the included
+   `homebridge-orvibo-cloud-1.1.1.tgz` to your Homebridge machine.
 2. In the directory containing that `.tgz`, run:
 
    ```bash
-   sudo npm install -g ./homebridge-orvibo-cloud-1.1.0.tgz
+   sudo npm install -g ./homebridge-orvibo-cloud-1.1.1.tgz
    ```
 
 3. Restart Homebridge. Open **Plugins → Homebridge ORVIBO Cloud → Settings**.
@@ -152,6 +152,10 @@ Example filters and device options:
 ]
 ```
 
+Device options are optional: leave the list empty for automatic discovery.
+Version 1.1.1 ignores incomplete rows without a `deviceId` and logs their row
+numbers. Blank entries in the include/exclude ID lists are also ignored.
+
 `invertPosition` affects percentage curtain reads and writes; it does not change
 the RF Open and Close button codes. `exposeAs` changes the appearance of a
 supported on/off relay; it does not add support for an unrecognized model.
@@ -194,6 +198,11 @@ shell commands or shell history.
   cannot be mistaken for a sibling's response.
 
 ## Troubleshooting
+
+**Startup reports `Each device override must contain a deviceId string`:** in
+version 1.1.0, an incomplete Device options row blocks discovery. Clear Device
+options (or remove the `devices` property from this platform's configuration),
+save and restart Homebridge. Upgrading to 1.1.1 also resolves this startup error.
 
 **Login rejected:** confirm the same username, password and cloud server work in
 the supplied Home Assistant integration. Choosing an explicit server does not
@@ -239,9 +248,9 @@ Build a new installable release with `npm pack`. Increment the version before
 publishing a subsequent release.
 
 The source ZIP contains `publish.sh`, which extracts the release from
-`/tmp/homebridge-orvibo-cloud-1.1.0.zip`, clones the GitHub repository, copies the
+`/tmp/homebridge-orvibo-cloud-1.1.1.zip`, clones the GitHub repository, copies the
 source while preserving `.git` and `.npmrc`, pushes
-`main` and tag `v1.1.0`, then publishes `homebridge-orvibo-cloud` to npm. Run it
+`main` and tag `v1.1.1`, then publishes `homebridge-orvibo-cloud` to npm. Run it
 with `bash publish.sh` on your publishing machine with GitHub and npm already
 authenticated. It is a release script: running it performs the push and publish.
 

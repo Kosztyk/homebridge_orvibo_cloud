@@ -27,7 +27,8 @@
       "includeDeviceIds": { "title": "Include only these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" }, "description": "Leave empty to include every supported device. Match the deviceId shown by npm run discover." },
       "excludeDeviceIds": { "title": "Exclude these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" } },
       "devices": {
-        "title": "Device options", "type": "array",
+        "title": "Device options", "type": "array", "default": [],
+        "description": "Optional settings for devices found automatically. Leave this list empty for normal discovery; add an override only when you know its deviceId. Incomplete rows are ignored.",
         "items": {
           "type": "object", "required": ["deviceId"],
           "properties": {

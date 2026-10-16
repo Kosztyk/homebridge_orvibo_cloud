@@ -315,3 +315,38 @@ nativeTest('push listener reconnects after an outage and shuts down without crea
   assert.ok(sessions.every((session) => session.closed));
   assert.equal(sessions.length, 2);
 });
+
+nativeTest('blank UI device options allow startup and discovery of two Allone RF blinds', async (t) => {
+  const api = new HomebridgeAPI();
+  const logs = [];
+  const log = Object.fromEntries(['info', 'warn', 'error', 'debug'].map((key) => [key, (message) => logs.push(String(message))]));
+  const config = {
+    platform: PLATFORM_NAME, username: 'user', password: 'pass', host: 'homemate.orvibo.com', pushUpdates: false,
+    devices: [{ deviceId: '', name: '', exclude: false, invertPosition: false, exposeAs: 'auto', tvButtons: [] }, { name: 'Not finished yet' }],
+    includeDeviceIds: [''], excludeDeviceIds: [''],
+  };
+  const platform = new OrviboPlatform(log, config, api);
+  t.after(() => platform.shutdown());
+  assert.ok(platform.client, 'cloud discovery must initialize despite the unused device row');
+  platform.client.request = async (_host, route) => {
+    if (route.startsWith('/getOauthToken?')) return { data: { access_token: 'test-token', user_id: 'test-user' } };
+    if (route.includes('statistics')) return { data: [{ familyId: 'home', familyName: 'Home' }] };
+    return { data: { device: [
+      { deviceId: 'hub', uid: 'shared-hub', deviceType: 67, deviceName: 'Allone Pro', online: true },
+      { deviceId: 'living-blind', uid: 'shared-hub', deviceType: 34, deviceName: 'Living blind', online: true },
+      { deviceId: 'bedroom-blind', uid: 'shared-hub', deviceType: 34, deviceName: 'Bedroom blind', online: true },
+    ], account: [{ userId: 'test-user', password: 'test-binary-password' }] } };
+  };
+  await platform.start();
+  assert.equal(platform.handlers.size, 2);
+  for (const handler of platform.handlers.values()) {
+    assert.equal(handler.kind, 'rfCover');
+    assert.equal(handler.accessory.services.filter((service) => service.UUID === api.hap.Service.Switch.UUID).length, 3);
+  }
+  assert.deepEqual(platform.config.devices, []);
+  assert.deepEqual(platform.config.includeDeviceIds, []);
+  assert.deepEqual(platform.config.excludeDeviceIds, []);
+  assert.doesNotMatch(logs.join('\n'), /Each device override must/);
+  assert.match(logs.join('\n'), /Ignoring Device options row 2 without a deviceId/);
+  assert.equal(config.devices.length, 2, 'normalization must not mutate Homebridge\'s source configuration');
+});
