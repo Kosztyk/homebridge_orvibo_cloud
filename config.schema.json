@@ -5,48 +5,227 @@
   "headerDisplay": "Connect your ORVIBO HomeMate account. RF blinds appear as blind accessories with Open, Stop and Close commands. TV remotes use momentary buttons; choose the none TV profile to disable them.",
   "schema": {
     "type": "object",
-    "required": ["username", "tvProfile"],
+    "required": [
+      "username",
+      "tvProfile"
+    ],
     "properties": {
-      "name": { "title": "Plugin name", "type": "string", "default": "ORVIBO Cloud" },
-      "username": { "title": "HomeMate email / username / phone", "type": "string", "minLength": 1, "required": true },
-      "password": { "title": "HomeMate password", "type": "string", "format": "password", "description": "Required unless you supply passwordHash below. Use your existing HomeMate account." },
+      "name": {
+        "title": "Plugin name",
+        "type": "string",
+        "default": "ORVIBO Cloud"
+      },
+      "username": {
+        "title": "HomeMate email / username / phone",
+        "type": "string",
+        "minLength": 1
+      },
+      "password": {
+        "title": "HomeMate password",
+        "type": "string",
+        "format": "password",
+        "description": "Required unless you supply passwordHash below. Use your existing HomeMate account."
+      },
       "host": {
-        "title": "Cloud server", "type": "string", "default": "homemate.orvibo.com",
-        "enum": ["homemate.orvibo.com", "germany.orvibo.com", "china.orvibo.com", "usa.orvibo.com", "auto"],
+        "title": "Cloud server",
+        "type": "string",
+        "default": "homemate.orvibo.com",
+        "enum": [
+          "homemate.orvibo.com",
+          "germany.orvibo.com",
+          "china.orvibo.com",
+          "usa.orvibo.com",
+          "auto"
+        ],
         "description": "Choose the same server as your Home Assistant integration. Auto tries only these four known ORVIBO servers."
       },
-      "familyId": { "title": "Home / family ID (optional)", "type": "string", "description": "Leave empty to discover all homes in this account. Use npm run discover to list IDs." },
-      "pollInterval": { "title": "Refresh interval (seconds)", "type": "integer", "default": 60, "minimum": 30, "maximum": 3600 },
-      "pushUpdates": { "title": "Receive live cloud updates", "type": "boolean", "default": true, "description": "Keeps an additional cloud connection for door, battery and device state events. Polling remains enabled as a fallback." },
-      "tvProfile": { "title": "TV profile (none disables TV remotes)", "type": "string", "required": true, "default": "stored", "enum": ["stored", "lg", "none"], "description": "Choose none to disable all TV remotes, including any LG device overrides. Stored uses the TV keys configured in HomeMate. LG sends standard LG infrared codes. Save and restart Homebridge after changing this setting." },
-      "tvButtons": {
-        "title": "TV buttons to expose (optional)", "type": "array", "uniqueItems": true,
-        "description": "Omit to use the main 16 controls (13 with the stored profile). To disable TV remotes reliably in the settings form, select none in TV profile above; an empty optional list may be omitted when saving. Home, Back and Exit require LG.",
-        "items": { "type": "string", "enum": ["power_toggle", "mute", "volume_up", "volume_down", "channel_up", "channel_down", "menu", "input", "up", "down", "left", "right", "ok", "home", "back", "exit", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+      "familyId": {
+        "title": "Home / family ID (optional)",
+        "type": "string",
+        "description": "Leave empty to discover all homes in this account. Use npm run discover to list IDs."
       },
-      "includeDeviceIds": { "title": "Include only these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" }, "description": "Leave empty to include every supported device. Match the deviceId shown by npm run discover." },
-      "excludeDeviceIds": { "title": "Exclude these device IDs (optional)", "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+      "pollInterval": {
+        "title": "Refresh interval (seconds)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 30,
+        "maximum": 3600
+      },
+      "pushUpdates": {
+        "title": "Receive live cloud updates",
+        "type": "boolean",
+        "default": true,
+        "description": "Keeps an additional cloud connection for door, battery and device state events. Polling remains enabled as a fallback."
+      },
+      "tvProfile": {
+        "title": "TV profile (none disables TV remotes)",
+        "type": "string",
+        "default": "stored",
+        "enum": [
+          "stored",
+          "lg",
+          "none"
+        ],
+        "description": "Choose none to disable all TV remotes, including any LG device overrides. Stored uses the TV keys configured in HomeMate. LG sends standard LG infrared codes. Save and restart Homebridge after changing this setting."
+      },
+      "tvButtons": {
+        "title": "TV buttons to expose (optional)",
+        "type": "array",
+        "uniqueItems": true,
+        "description": "Omit to use the main 16 controls (13 with the stored profile). To disable TV remotes reliably in the settings form, select none in TV profile above; an empty optional list may be omitted when saving. Home, Back and Exit require LG.",
+        "items": {
+          "type": "string",
+          "enum": [
+            "power_toggle",
+            "mute",
+            "volume_up",
+            "volume_down",
+            "channel_up",
+            "channel_down",
+            "menu",
+            "input",
+            "up",
+            "down",
+            "left",
+            "right",
+            "ok",
+            "home",
+            "back",
+            "exit",
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9"
+          ]
+        }
+      },
+      "includeDeviceIds": {
+        "title": "Include only these device IDs (optional)",
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string"
+        },
+        "description": "Leave empty to include every supported device. Match the deviceId shown by npm run discover."
+      },
+      "excludeDeviceIds": {
+        "title": "Exclude these device IDs (optional)",
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string"
+        }
+      },
       "devices": {
-        "title": "Device options", "type": "array", "default": [],
+        "title": "Device options",
+        "type": "array",
+        "default": [],
         "description": "Optional settings for devices found automatically. Leave this list empty for normal discovery; add an override only when you know its deviceId. Incomplete rows are ignored.",
         "items": {
-          "type": "object", "required": ["deviceId"],
+          "type": "object",
+          "required": [
+            "deviceId"
+          ],
           "properties": {
-            "deviceId": { "title": "Device ID", "type": "string", "required": true, "minLength": 1 },
-            "name": { "title": "HomeKit service name (optional)", "type": "string" },
-            "exclude": { "title": "Hide this device", "type": "boolean", "default": false },
-            "invertPosition": { "title": "Reverse curtain position", "type": "boolean", "default": false, "description": "For percentage curtains only. HomeKit always uses 0=closed and 100=open. RF Open/Close commands are unchanged." },
-            "exposeAs": { "title": "Relay appearance", "type": "string", "default": "auto", "enum": ["auto", "switch", "outlet"], "description": "Optional HomeKit appearance for a supported type-1/102 on/off relay. Does not add support for unknown models." },
-            "tvProfile": { "title": "TV profile override (optional)", "type": "string", "enum": ["stored", "lg", "none"], "description": "Choose none to hide this TV; leave unset to inherit the default. A global none profile always disables all TVs, including overrides." },
+            "deviceId": {
+              "title": "Device ID",
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "title": "HomeKit service name (optional)",
+              "type": "string"
+            },
+            "exclude": {
+              "title": "Hide this device",
+              "type": "boolean",
+              "default": false
+            },
+            "invertPosition": {
+              "title": "Reverse curtain position",
+              "type": "boolean",
+              "default": false,
+              "description": "For percentage curtains only. HomeKit always uses 0=closed and 100=open. RF Open/Close commands are unchanged."
+            },
+            "exposeAs": {
+              "title": "Relay appearance",
+              "type": "string",
+              "default": "auto",
+              "enum": [
+                "auto",
+                "switch",
+                "outlet"
+              ],
+              "description": "Optional HomeKit appearance for a supported type-1/102 on/off relay. Does not add support for unknown models."
+            },
+            "tvProfile": {
+              "title": "TV profile override (optional)",
+              "type": "string",
+              "enum": [
+                "stored",
+                "lg",
+                "none"
+              ],
+              "description": "Choose none to hide this TV; leave unset to inherit the default. A global none profile always disables all TVs, including overrides."
+            },
             "tvButtons": {
-              "title": "TV buttons override (optional)", "type": "array", "uniqueItems": true,
-              "items": { "type": "string", "enum": ["power_toggle", "mute", "volume_up", "volume_down", "channel_up", "channel_down", "menu", "input", "up", "down", "left", "right", "ok", "home", "back", "exit", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"] }
+              "title": "TV buttons override (optional)",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "power_toggle",
+                  "mute",
+                  "volume_up",
+                  "volume_down",
+                  "channel_up",
+                  "channel_down",
+                  "menu",
+                  "input",
+                  "up",
+                  "down",
+                  "left",
+                  "right",
+                  "ok",
+                  "home",
+                  "back",
+                  "exit",
+                  "0",
+                  "1",
+                  "2",
+                  "3",
+                  "4",
+                  "5",
+                  "6",
+                  "7",
+                  "8",
+                  "9"
+                ]
+              }
             }
           }
         }
       },
-      "passwordHash": { "title": "Password MD5 (advanced, optional)", "type": "string", "format": "password", "pattern": "^[a-fA-F0-9]{32}$", "description": "Alternative to password. This hash is a credential and must be kept private." },
-      "debug": { "title": "Show additional discovery logs", "type": "boolean", "default": false, "description": "Logs device names, types and connection status. Never logs passwords, account tokens or packet bodies." }
+      "passwordHash": {
+        "title": "Password MD5 (advanced, optional)",
+        "type": "string",
+        "format": "password",
+        "pattern": "^[a-fA-F0-9]{32}$",
+        "description": "Alternative to password. This hash is a credential and must be kept private."
+      },
+      "debug": {
+        "title": "Show additional discovery logs",
+        "type": "boolean",
+        "default": false,
+        "description": "Logs device names, types and connection status. Never logs passwords, account tokens or packet bodies."
+      }
     }
   }
 }
