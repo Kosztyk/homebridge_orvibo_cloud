@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.4 — 2026-10-22
+
+- Use standard object-level required arrays in the configuration schema while preserving mandatory fields.
+
 ## 1.1.3
 
 - Add an explicit `none` TV profile that disables all TV remotes, including LG
