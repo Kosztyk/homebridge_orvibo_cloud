@@ -1,5 +1,11 @@
 # Changelog
 
+
+## 1.1.5 — 2026-10-23
+
+- Update repository, homepage and issue URLs for the renamed GitHub repository.
+- Refresh source archive paths and publication instructions.
+
 ## 1.1.4 — 2026-10-22
 
 - Use standard object-level required arrays in the configuration schema while preserving mandatory fields.

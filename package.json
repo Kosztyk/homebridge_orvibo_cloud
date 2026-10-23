@@ -1,6 +1,6 @@
 {
   "name": "homebridge-orvibo-cloud",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "ORVIBO HomeMate cloud curtains, lights, sensors and Allone Pro remote controls for Homebridge",
   "main": "index.js",
   "type": "commonjs",
@@ -8,11 +8,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Kosztyk/homebridge_orvibo_cloud.git"
+    "url": "git+https://github.com/Kosztyk/homebridge-orvibo-cloud.git"
   },
-  "homepage": "https://github.com/Kosztyk/homebridge_orvibo_cloud#readme",
+  "homepage": "https://github.com/Kosztyk/homebridge-orvibo-cloud#readme",
   "bugs": {
-    "url": "https://github.com/Kosztyk/homebridge_orvibo_cloud/issues"
+    "url": "https://github.com/Kosztyk/homebridge-orvibo-cloud/issues"
   },
   "keywords": [
     "homebridge-plugin",
